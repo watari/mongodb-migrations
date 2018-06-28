@@ -1,5 +1,4 @@
 <?php
-
 declare(strict_types=1);
 
 /*
@@ -13,6 +12,8 @@ declare(strict_types=1);
 
 namespace AntiMattr\MongoDB\Migrations\Configuration;
 
+use AntiMattr\MongoDB\Migrations\Configuration\Interfaces\ConfigurationBuilderInterface;
+use AntiMattr\MongoDB\Migrations\Configuration\Interfaces\ConfigurationInterface;
 use AntiMattr\MongoDB\Migrations\OutputWriter;
 use Doctrine\MongoDB\Connection;
 use Symfony\Component\Yaml\Yaml;
@@ -20,7 +21,7 @@ use Symfony\Component\Yaml\Yaml;
 /**
  * @author Douglas Reith <douglas@reith.com.au>
  */
-class ConfigurationBuilder
+class ConfigurationBuilder implements ConfigurationBuilderInterface
 {
     /**
      * @var \Doctrine\MongoDB\Connection
@@ -56,9 +57,9 @@ class ConfigurationBuilder
     }
 
     /**
-     * @return ConfigurationBuilder
+     * @return ConfigurationBuilderInterface
      */
-    public static function create(): ConfigurationBuilder
+    public static function create(): ConfigurationBuilderInterface
     {
         return new static();
     }
@@ -66,9 +67,9 @@ class ConfigurationBuilder
     /**
      * @param Connection $connection
      *
-     * @return ConfigurationBuilder
+     * @return self
      */
-    public function setConnection(Connection $connection): ConfigurationBuilder
+    public function setConnection(Connection $connection): ConfigurationBuilderInterface
     {
         $this->connection = $connection;
 
@@ -78,9 +79,9 @@ class ConfigurationBuilder
     /**
      * @param OutputWriter $outputWriter
      *
-     * @return ConfigurationBuilder
+     * @return self
      */
-    public function setOutputWriter(OutputWriter $outputWriter): ConfigurationBuilder
+    public function setOutputWriter(OutputWriter $outputWriter): ConfigurationBuilderInterface
     {
         $this->outputWriter = $outputWriter;
 
@@ -90,9 +91,9 @@ class ConfigurationBuilder
     /**
      * @param string|null $configFile
      *
-     * @return ConfigurationBuilder
+     * @return self
      */
-    public function setOnDiskConfiguration(?string $configFile = null): ConfigurationBuilder
+    public function setOnDiskConfiguration(?string $configFile = null): ConfigurationBuilderInterface
     {
         $this->configFile = $configFile;
 
@@ -135,18 +136,17 @@ class ConfigurationBuilder
     }
 
     /**
-     * @return Configuration
+     * @return ConfigurationInterface
      */
-    public function build(): Configuration
+    public function build(): ConfigurationInterface
     {
-        $config = new Configuration($this->connection, $this->outputWriter);
+        $config = $this->createConfigurationInstance($this->connection, $this->outputWriter);
 
         $config->setName($this->configParams['name'])
-            ->setFile($this->configFile)
-            ->setMigrationsDatabaseName($this->configParams['database'])
-            ->setMigrationsCollectionName($this->configParams['collection_name'])
-            ->setMigrationsNamespace($this->configParams['migrations_namespace'])
-        ;
+               ->setFile($this->configFile)
+               ->setMigrationsDatabaseName($this->configParams['database'])
+               ->setMigrationsCollectionName($this->configParams['collection_name'])
+               ->setMigrationsNamespace($this->configParams['migrations_namespace']);
 
         if (!empty($this->configParams['migrations_directory'])) {
             $migrationsDirectory = $this->getDirectoryRelativeToFile(
@@ -155,7 +155,7 @@ class ConfigurationBuilder
             );
 
             $config->setMigrationsDirectory($migrationsDirectory)
-                ->registerMigrationsFromDirectory($migrationsDirectory);
+                   ->registerMigrationsFromDirectory($migrationsDirectory);
         }
 
         if (!empty($this->configParams['migrations_script_directory'])) {
@@ -188,27 +188,27 @@ class ConfigurationBuilder
         $configArr = [];
 
         if (isset($xml->name)) {
-            $configArr['name'] = (string) $xml->name;
+            $configArr['name'] = (string)$xml->name;
         }
 
         if (isset($xml->database['name'])) {
-            $configArr['database'] = (string) $xml->database['name'];
+            $configArr['database'] = (string)$xml->database['name'];
         }
 
         if (isset($xml->collection['name'])) {
-            $configArr['collection_name'] = (string) $xml->collection['name'];
+            $configArr['collection_name'] = (string)$xml->collection['name'];
         }
 
         if (isset($xml->{'migrations-namespace'})) {
-            $configArr['migrations_namespace'] = (string) $xml->{'migrations-namespace'};
+            $configArr['migrations_namespace'] = (string)$xml->{'migrations-namespace'};
         }
 
         if (isset($xml->{'migrations-directory'})) {
-            $configArr['migrations_directory'] = (string) $xml->{'migrations-directory'};
+            $configArr['migrations_directory'] = (string)$xml->{'migrations-directory'};
         }
 
         if (isset($xml->{'migrations-script-directory'})) {
-            $configArr['migrations_script_directory'] = (string) $xml->{'migrations-script-directory'};
+            $configArr['migrations_script_directory'] = (string)$xml->{'migrations-script-directory'};
         }
 
         if (isset($xml->migrations->migration)) {
@@ -244,5 +244,20 @@ class ConfigurationBuilder
         }
 
         return $directory;
+    }
+
+    /**
+     * Create configuration instance
+     *
+     * @param Connection   $connection
+     * @param OutputWriter $outputWriter
+     *
+     * @return ConfigurationInterface
+     */
+    protected function createConfigurationInstance(
+        Connection $connection,
+        OutputWriter $outputWriter
+    ): ConfigurationInterface {
+        return new Configuration($connection, $outputWriter);
     }
 }

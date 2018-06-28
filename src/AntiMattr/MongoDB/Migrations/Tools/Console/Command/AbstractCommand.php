@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 /*
  * This file is part of the AntiMattr MongoDB Migrations Library, a library by Matthew Fitzgerald.
@@ -13,6 +14,8 @@ namespace AntiMattr\MongoDB\Migrations\Tools\Console\Command;
 
 use AntiMattr\MongoDB\Migrations\Configuration\Configuration;
 use AntiMattr\MongoDB\Migrations\Configuration\ConfigurationBuilder;
+use AntiMattr\MongoDB\Migrations\Configuration\Interfaces\ConfigurationBuilderInterface;
+use AntiMattr\MongoDB\Migrations\Configuration\Interfaces\ConfigurationInterface;
 use AntiMattr\MongoDB\Migrations\OutputWriter;
 use Doctrine\MongoDB\Connection;
 use Symfony\Component\Console\Command\Command;
@@ -32,25 +35,35 @@ abstract class AbstractCommand extends Command
 
     /**
      * configure.
+     *
+     * @return void
      */
-    protected function configure()
+    protected function configure(): void
     {
         $this->addOption(
-            'configuration', null, InputOption::VALUE_OPTIONAL, 'The path to a migrations configuration file.'
+            'configuration',
+            null,
+            InputOption::VALUE_OPTIONAL,
+            'The path to a migrations configuration file.'
         );
         $this->addOption(
-            'db-configuration', null, InputOption::VALUE_OPTIONAL, 'The path to a database connection configuration file.'
+            'db-configuration',
+            null,
+            InputOption::VALUE_OPTIONAL,
+            'The path to a database connection configuration file.'
         );
     }
 
     /**
      * @param \AntiMattr\MongoDB\Migrations\Configuration\Configuration $configuration
      * @param \Symfony\Component\Console\Output\OutputInterface         $output
+     *
+     * @return void
      */
-    protected function outputHeader(Configuration $configuration, OutputInterface $output)
+    protected function outputHeader(Configuration $configuration, OutputInterface $output): void
     {
         $name = $configuration->getName();
-        $name = $name ? $name : 'AntiMattr Database Migrations';
+        $name = !empty($name) ? $name : 'AntiMattr Database Migrations';
         $name = str_repeat(' ', 20) . $name . str_repeat(' ', 20);
         $output->writeln('<question>' . str_repeat(' ', strlen($name)) . '</question>');
         $output->writeln('<question>' . $name . '</question>');
@@ -60,8 +73,10 @@ abstract class AbstractCommand extends Command
 
     /**
      * @param \AntiMattr\MongoDB\Migrations\Configuration\Configuration
+     *
+     * @return void
      */
-    public function setMigrationConfiguration(Configuration $config)
+    public function setMigrationConfiguration(Configuration $config): void
     {
         $this->configuration = $config;
     }
@@ -72,24 +87,24 @@ abstract class AbstractCommand extends Command
      *
      * @return \AntiMattr\MongoDB\Migrations\Configuration\Configuration
      */
-    protected function getMigrationConfiguration(
-        InputInterface $input,
-        OutputInterface $output
-    ): Configuration {
-        if (!$this->configuration) {
+    protected function getMigrationConfiguration(InputInterface $input, OutputInterface $output): ConfigurationInterface
+    {
+        if (empty($this->configuration)) {
             $conn = $this->getDatabaseConnection($input);
 
-            $outputWriter = new OutputWriter(function($message) use ($output) {
-                return $output->writeln($message);
-            });
+            $outputWriter = new OutputWriter(
+                function ($message) use ($output) {
+                    return $output->writeln($message);
+                }
+            );
 
             $migrationsConfigFile = $input->getOption('configuration');
 
-            $this->configuration = ConfigurationBuilder::create()
-                ->setConnection($conn)
-                ->setOutputWriter($outputWriter)
-                ->setOnDiskConfiguration($migrationsConfigFile)
-                ->build();
+            $this->configuration = $this->getConfigurationBuilder()
+                                        ->setConnection($conn)
+                                        ->setOutputWriter($outputWriter)
+                                        ->setOnDiskConfiguration($migrationsConfigFile)
+                                        ->build();
         }
 
         return $this->configuration;
@@ -105,8 +120,8 @@ abstract class AbstractCommand extends Command
         // Default to document manager helper set
         if ($this->getApplication()->getHelperSet()->has('dm')) {
             return $this->getHelper('dm')
-                ->getDocumentManager()
-                ->getConnection();
+                        ->getDocumentManager()
+                        ->getConnection();
         }
 
         // PHP array file
@@ -138,7 +153,7 @@ abstract class AbstractCommand extends Command
      *
      * @return \Doctrine\MongoDB\Connection
      */
-    protected function createConnection($params)
+    protected function createConnection($params): Connection
     {
         $credentials = '';
         if (isset($params['password'])) {
@@ -167,5 +182,15 @@ abstract class AbstractCommand extends Command
         }
 
         return new Connection($server, $options);
+    }
+
+    /**
+     * Create instance of configuration builder for command.
+     *
+     * @return ConfigurationBuilderInterface
+     */
+    protected function getConfigurationBuilder(): ConfigurationBuilderInterface
+    {
+        return ConfigurationBuilder::create();
     }
 }

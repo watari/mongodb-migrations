@@ -11,7 +11,6 @@
 
 namespace AntiMattr\MongoDB\Migrations\Tools\Console\Command;
 
-use AntiMattr\MongoDB\Migrations\Migration;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -25,7 +24,7 @@ class ExecuteCommand extends AbstractCommand
 {
     const NAME = 'mongodb:migrations:execute';
 
-    protected function configure()
+    protected function configure(): void
     {
         $this
             ->setName($this->getName())

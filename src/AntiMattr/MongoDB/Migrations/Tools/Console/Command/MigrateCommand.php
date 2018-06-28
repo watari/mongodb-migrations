@@ -25,7 +25,7 @@ class MigrateCommand extends AbstractCommand
 {
     const NAME = 'mongodb:migrations:migrate';
 
-    protected function configure()
+    protected function configure(): void
     {
         $this
             ->setName($this->getName())

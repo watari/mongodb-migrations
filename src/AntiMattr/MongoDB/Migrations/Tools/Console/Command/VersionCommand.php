@@ -26,7 +26,7 @@ class VersionCommand extends AbstractCommand
 {
     const NAME = 'mongodb:migrations:version';
 
-    protected function configure()
+    protected function configure(): void
     {
         $this
             ->setName($this->getName())
@@ -52,8 +52,8 @@ EOT
      * @param \Symfony\Component\Console\Input\InputInterface
      * @param \Symfony\Component\Console\Output\OutputInterface
      *
-     * @throws AntiMattr\MongoDB\Migrations\Exception\UnknownVersionException Throws exception if migration version does not exist
-     * @throws InvalidArgumentException
+     * @throws \AntiMattr\MongoDB\Migrations\Exception\UnknownVersionException Throws exception if migration version does not exist
+     * @throws \InvalidArgumentException
      */
     public function execute(InputInterface $input, OutputInterface $output)
     {
