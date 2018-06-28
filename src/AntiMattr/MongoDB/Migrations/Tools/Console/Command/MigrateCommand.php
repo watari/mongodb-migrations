@@ -45,7 +45,7 @@ Or you can also execute the migration without a warning message which you need t
     <info>%command.full_name% --no-interaction</info>
 
 EOT
-        );
+            );
 
         parent::configure();
     }
@@ -63,14 +63,15 @@ EOT
 
         $this->outputHeader($configuration, $output);
 
-        $noInteraction = !$input->isInteractive();
+        $isInteractive = $input->isInteractive();
 
         $executedVersions = $configuration->getMigratedVersions();
         $availableVersions = $configuration->getAvailableVersions();
         $executedUnavailableVersions = array_diff($executedVersions, $availableVersions);
 
-        if ($executedUnavailableVersions) {
-            $output->writeln(sprintf('<error>WARNING! You have %s previously executed migrations in the database that are not registered migrations.</error>', count($executedUnavailableVersions)));
+        if (!empty($executedUnavailableVersions)) {
+            $output->writeln(sprintf('<error>WARNING! You have %s previously executed migrations in the database that are not registered migrations.</error>',
+                count($executedUnavailableVersions)));
             foreach ($executedUnavailableVersions as $executedUnavailableVersion) {
                 $output->writeln(
                     sprintf(
@@ -81,7 +82,7 @@ EOT
                 );
             }
 
-            if (!$noInteraction) {
+            if ($isInteractive) {
                 $question = new ConfirmationQuestion(
                     '<question>Are you sure you wish to continue? (y/[n])</question> ',
                     false
@@ -100,7 +101,7 @@ EOT
         }
 
         // warn the user if no dry run and interaction is on
-        if (!$noInteraction) {
+        if ($isInteractive) {
             $question = new ConfirmationQuestion(
                 '<question>WARNING! You are about to execute a database migration that could result in data lost. Are you sure you wish to continue? (y/[n])</question> ',
                 false
@@ -118,6 +119,8 @@ EOT
         }
 
         $migration->migrate($version);
+
+        return 0;
     }
 
     protected function createMigration(Configuration $configuration)

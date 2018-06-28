@@ -94,6 +94,15 @@ class Configuration implements ConfigurationInterface
      */
     private $name;
 
+
+    /**
+     * With this value will be marked all migrations in database. This mark will allow to group migrations by their
+     * origin.
+     *
+     * @var string
+     */
+    protected $prefix;
+
     /**
      * @var \AntiMattr\MongoDB\Migrations\Version[]
      */
@@ -333,7 +342,7 @@ class Configuration implements ConfigurationInterface
     {
         $this->createMigrationCollection();
 
-        $cursor = $this->getCollection()->find();
+        $cursor = $this->getCollection()->find(['prefix' => $this->prefix]);
         $versions = [];
         foreach ($cursor as $record) {
             $versions[] = $record['v'];
@@ -357,9 +366,7 @@ class Configuration implements ConfigurationInterface
     {
         $this->createMigrationCollection();
 
-        $cursor = $this->getCollection()->find(
-            ['v' => $version]
-        );
+        $cursor = $this->getCollection()->find(['v' => $version, 'prefix' => $this->prefix]);
 
         if (!$cursor->count()) {
             throw new UnknownVersionException($version);
@@ -424,7 +431,7 @@ class Configuration implements ConfigurationInterface
     {
         $this->createMigrationCollection();
 
-        $cursor = $this->getCollection()->find();
+        $cursor = $this->getCollection()->find(['prefix' => $this->prefix]);
 
         return $cursor->count();
     }
@@ -460,7 +467,7 @@ class Configuration implements ConfigurationInterface
             );
             throw new DuplicateVersionException($message);
         }
-        $version = new Version($this, $version, $class);
+        $version = new Version($this, $this->prefix, $version, $class);
         $this->migrations[$version->getVersion()] = $version;
         \ksort($this->migrations);
 
@@ -556,7 +563,7 @@ class Configuration implements ConfigurationInterface
     {
         $this->createMigrationCollection();
 
-        $record = $this->getCollection()->findOne(['v' => $version->getVersion()]);
+        $record = $this->getCollection()->findOne(['v' => $version->getVersion(), 'prefix' => $this->prefix]);
 
         return null !== $record;
     }
@@ -576,9 +583,7 @@ class Configuration implements ConfigurationInterface
         }
 
         $cursor = $this->getCollection()
-                       ->find(
-                           ['v' => ['$in' => $migratedVersions]]
-                       )
+                       ->find(['v' => ['$in' => $migratedVersions], 'prefix' => $this->prefix])
                        ->sort(['v' => -1])
                        ->limit(1);
 
@@ -615,7 +620,7 @@ class Configuration implements ConfigurationInterface
 
         if (!$this->migrationCollectionCreated) {
             $collection = $this->getCollection();
-            $collection->ensureIndex(['v' => -1], ['name' => 'version', 'unique' => true]);
+            $collection->ensureIndex(['v' => -1, 'prefix' => -1], ['name' => 'version', 'unique' => true]);
             $this->migrationCollectionCreated = true;
         }
 
@@ -674,6 +679,26 @@ class Configuration implements ConfigurationInterface
             $message = 'Migrations directory must be configured in order to use AntiMattr migrations.';
             throw new ConfigurationValidationException($message);
         }
+    }
+
+    /**
+     * @return string
+     */
+    public function getPrefix(): string
+    {
+        return $this->prefix;
+    }
+
+    /**
+     * @param string $prefix
+     *
+     * @return ConfigurationInterface
+     */
+    public function setPrefix(string $prefix): ConfigurationInterface
+    {
+        $this->prefix = $prefix;
+
+        return $this;
     }
 
     /**

@@ -287,6 +287,19 @@ interface ConfigurationInterface
     public function validate(): void;
 
     /**
+     * @return string
+     */
+    public function getPrefix(): string;
+
+    /**
+     * @param string $prefix
+     *
+     * @return ConfigurationInterface
+     */
+    public function setPrefix(string $prefix): ConfigurationInterface;
+
+
+    /**
      * @return array
      */
     public function getDetailsMap(): array;
