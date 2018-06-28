@@ -67,7 +67,7 @@ EOT
         $markMigrated = $input->getOption('add') ? true : false;
 
         if (!$configuration->hasVersion($version)) {
-            throw new UnknownVersionException($version);
+            throw new UnknownVersionException("The version \"{$version}\" is not found.");
         }
 
         $version = $configuration->getVersion($version);

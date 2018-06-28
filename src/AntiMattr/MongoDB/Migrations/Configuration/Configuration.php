@@ -30,6 +30,8 @@ class Configuration implements ConfigurationInterface
     const MIGRATION_DIRECTION_UP = 'up';
     const MIGRATION_DIRECTION_DOWN = 'down';
 
+    const DEFAULT_PREFIX = 'app';
+
     /**
      * @var \Doctrine\MongoDB\Collection
      */
