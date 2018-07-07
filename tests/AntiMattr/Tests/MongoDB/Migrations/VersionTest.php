@@ -1,9 +1,16 @@
 <?php
+declare(strict_types = 1);
 
 namespace AntiMattr\Tests\MongoDB\Migrations;
 
 use AntiMattr\MongoDB\Migrations\AbstractMigration;
+use AntiMattr\MongoDB\Migrations\Collection\Statistics;
+use AntiMattr\MongoDB\Migrations\Configuration\Configuration;
+use AntiMattr\MongoDB\Migrations\Configuration\Interfaces\ConfigurationInterface;
+use AntiMattr\MongoDB\Migrations\OutputWriter;
 use AntiMattr\MongoDB\Migrations\Version;
+use Doctrine\MongoDB\Collection;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Doctrine\MongoDB\Database;
 use MongoDB\BSON\UTCDateTime;
@@ -11,13 +18,18 @@ use MongoDB\BSON\UTCDateTime;
 class VersionTest extends TestCase
 {
     private $className;
+    /** @var ConfigurationInterface|MockObject */
     private $configuration;
-    private $connections;
+    private $connection;
     private $db;
+    /** @var Version|MockObject */
     private $migration;
+    /** @var VersionStub */
     private $version;
     private $versionName;
+    /** @var OutputWriter|MockObject */
     private $outputWriter;
+    /** @var Statistics|MockObject */
     private $statistics;
 
     protected function setUp()
@@ -32,16 +44,21 @@ class VersionTest extends TestCase
         $this->versionName = '20140908000000';
 
         $this->configuration->expects($this->once())
-            ->method('getOutputWriter')
-            ->will($this->returnValue($this->outputWriter));
+                            ->method('getOutputWriter')
+                            ->will($this->returnValue($this->outputWriter));
         $this->configuration->expects($this->once())
-            ->method('getConnection')
-            ->will($this->returnValue($this->connection));
+                            ->method('getConnection')
+                            ->will($this->returnValue($this->connection));
         $this->configuration->expects($this->once())
-            ->method('getDatabase')
-            ->will($this->returnValue($this->db));
+                            ->method('getDatabase')
+                            ->will($this->returnValue($this->db));
 
-        $this->version = new VersionStub($this->configuration, $this->versionName, $this->className);
+        $this->version = new VersionStub(
+            $this->configuration,
+            Configuration::DEFAULT_PREFIX,
+            $this->versionName,
+            $this->className
+        );
         $this->version->setStatistics($this->statistics);
         $this->version->setMigration($this->migration);
     }
@@ -51,49 +68,51 @@ class VersionTest extends TestCase
         $this->assertSame($this->configuration, $this->version->getConfiguration());
         $this->assertSame(Version::STATE_NONE, $this->version->getState());
         $this->assertSame($this->versionName, $this->version->getVersion());
-        $this->assertEquals($this->versionName, (string) $this->version);
+        $this->assertEquals($this->versionName, (string)$this->version);
         $this->assertNotNull($this->version->getMigration());
     }
 
     public function testAnalyzeThrowsException()
     {
+        /** @var Collection|MockObject $collection */
         $collection = $this->createMock('Doctrine\MongoDB\Collection');
         $this->statistics->expects($this->once())
-            ->method('setCollection')
-            ->with($collection);
+                         ->method('setCollection')
+                         ->with($collection);
 
         $collection->expects($this->once())
-            ->method('getName')
-            ->will($this->returnValue('test_name'));
+                   ->method('getName')
+                   ->will($this->returnValue('test_name'));
 
         $expectedException = new \RuntimeException();
 
         $this->statistics->expects($this->once())
-            ->method('updateBefore')
-            ->will($this->throwException($expectedException));
+                         ->method('updateBefore')
+                         ->will($this->throwException($expectedException));
 
         $this->outputWriter->expects($this->once())
-            ->method('write');
+                           ->method('write');
 
         $this->version->analyze($collection);
     }
 
     public function testAnalyze()
     {
+        /** @var Collection|MockObject $collection */
         $collection = $this->createMock('Doctrine\MongoDB\Collection');
         $this->statistics->expects($this->once())
-            ->method('setCollection')
-            ->with($collection);
+                         ->method('setCollection')
+                         ->with($collection);
 
         $collection->expects($this->once())
-            ->method('getName')
-            ->will($this->returnValue('test_name'));
+                   ->method('getName')
+                   ->will($this->returnValue('test_name'));
 
         $this->statistics->expects($this->once())
-            ->method('updateBefore');
+                         ->method('updateBefore');
 
         $this->outputWriter->expects($this->never())
-            ->method('write');
+                           ->method('write');
 
         $this->version->analyze($collection);
     }
@@ -105,20 +124,21 @@ class VersionTest extends TestCase
 
         $collection = $this->createMock('Doctrine\MongoDB\Collection');
         $this->configuration->expects($this->once())
-            ->method('createMigrationCollection');
+                            ->method('createMigrationCollection');
 
         $this->configuration->expects($this->once())
-            ->method('getCollection')
-            ->will($this->returnValue($collection));
+                            ->method('getCollection')
+                            ->will($this->returnValue($collection));
 
         $insert = [
             'v' => $this->versionName,
             't' => $timestamp,
+            'prefix' => Configuration::DEFAULT_PREFIX,
         ];
 
         $collection->expects($this->once())
-            ->method('insert')
-            ->with($insert);
+                   ->method('insert')
+                   ->with($insert);
 
         $this->version->markMigrated();
     }
@@ -130,24 +150,27 @@ class VersionTest extends TestCase
 
         $collection = $this->createMock('Doctrine\MongoDB\Collection');
         $this->configuration->expects($this->once())
-            ->method('createMigrationCollection');
+                            ->method('createMigrationCollection');
 
         $this->configuration->expects($this->once())
-            ->method('getCollection')
-            ->will($this->returnValue($collection));
+                            ->method('getCollection')
+                            ->will($this->returnValue($collection));
 
         $query = [
             'v' => $this->versionName,
+            'prefix' => Configuration::DEFAULT_PREFIX,
+
         ];
 
         $update = [
             'v' => $this->versionName,
             't' => $timestamp,
+            'prefix' => Configuration::DEFAULT_PREFIX,
         ];
 
         $collection->expects($this->once())
-            ->method('update')
-            ->with($query, $update);
+                   ->method('update')
+                   ->with($query, $update);
 
         $replay = true;
         $this->version->markMigrated($replay);
@@ -160,38 +183,40 @@ class VersionTest extends TestCase
 
         $collection = $this->createMock('Doctrine\MongoDB\Collection');
         $this->configuration->expects($this->once())
-            ->method('createMigrationCollection');
+                            ->method('createMigrationCollection');
 
         $this->configuration->expects($this->once())
-            ->method('getCollection')
-            ->will($this->returnValue($collection));
+                            ->method('getCollection')
+                            ->will($this->returnValue($collection));
 
         $remove = [
             'v' => $this->versionName,
+            'prefix' => Configuration::DEFAULT_PREFIX,
         ];
 
         $collection->expects($this->once())
-            ->method('remove')
-            ->with($remove);
+                   ->method('remove')
+                   ->with($remove);
 
         $this->version->markNotMigrated();
     }
 
     public function testUpdateStatisticsAfterThrowsException()
     {
+        /** @var Collection|MockObject $collection */
         $collection = $this->createMock('Doctrine\MongoDB\Collection');
         $this->statistics->expects($this->once())
-            ->method('setCollection')
-            ->with($collection);
+                         ->method('setCollection')
+                         ->with($collection);
 
         $expectedException = new \RuntimeException();
 
         $this->statistics->expects($this->once())
-            ->method('updateAfter')
-            ->will($this->throwException($expectedException));
+                         ->method('updateAfter')
+                         ->will($this->throwException($expectedException));
 
         $this->outputWriter->expects($this->once())
-            ->method('write');
+                           ->method('write');
 
         $this->version->analyze($collection);
         $this->version->doUpdateStatisticsAfter();
@@ -199,24 +224,25 @@ class VersionTest extends TestCase
 
     public function testUpdateStatisticsAfter()
     {
+        /** @var Collection|MockObject $collection */
         $collection = $this->createMock('Doctrine\MongoDB\Collection');
         $this->statistics->expects($this->once())
-            ->method('setCollection')
-            ->with($collection);
+                         ->method('setCollection')
+                         ->with($collection);
 
         $this->statistics->expects($this->once())
-            ->method('getCollection')
-            ->will($this->returnValue($collection));
+                         ->method('getCollection')
+                         ->will($this->returnValue($collection));
 
         $collection->expects($this->exactly(2))
-            ->method('getName')
-            ->will($this->returnValue('test_name'));
+                   ->method('getName')
+                   ->will($this->returnValue('test_name'));
 
         $this->statistics->expects($this->once())
-            ->method('updateAfter');
+                         ->method('updateAfter');
 
         $this->outputWriter->expects($this->never())
-            ->method('write');
+                           ->method('write');
 
         $this->version->analyze($collection);
         $this->version->doUpdateStatisticsAfter();
@@ -225,8 +251,8 @@ class VersionTest extends TestCase
     public function testIsMigrated()
     {
         $this->configuration->expects($this->once())
-            ->method('hasVersionMigrated')
-            ->with($this->version);
+                            ->method('hasVersionMigrated')
+                            ->with($this->version);
 
         $this->version->isMigrated();
     }
@@ -243,9 +269,9 @@ class VersionTest extends TestCase
         // These methods will not be called
         $this->migration->expects($this->never())->method('down');
         $this->configuration->expects($this->never())
-            ->method('createMigrationCollection');
+                            ->method('createMigrationCollection');
         $this->configuration->expects($this->never())
-            ->method('getCollection');
+                            ->method('getCollection');
 
         $replay = true;
         $this->version->execute('down', $replay);
@@ -259,16 +285,16 @@ class VersionTest extends TestCase
         $expectedException = new \AntiMattr\MongoDB\Migrations\Exception\SkipException();
 
         $this->migration->expects($this->once())
-            ->method($direction)
-            ->will($this->throwException($expectedException));
+                        ->method($direction)
+                        ->will($this->throwException($expectedException));
 
         $collection = $this->createMock('Doctrine\MongoDB\Collection');
         $this->configuration->expects($this->once())
-            ->method('createMigrationCollection');
+                            ->method('createMigrationCollection');
 
         $this->configuration->expects($this->once())
-            ->method('getCollection')
-            ->will($this->returnValue($collection));
+                            ->method('getCollection')
+                            ->will($this->returnValue($collection));
 
         $this->version->execute($direction);
     }
@@ -279,21 +305,21 @@ class VersionTest extends TestCase
     public function testExecute($direction)
     {
         $this->migration->expects($this->once())
-            ->method('pre' . $direction);
+                        ->method('pre' . $direction);
 
         $this->migration->expects($this->once())
-            ->method($direction);
+                        ->method($direction);
 
         $this->migration->expects($this->once())
-            ->method('post' . $direction);
+                        ->method('post' . $direction);
 
         $collection = $this->createMock('Doctrine\MongoDB\Collection');
         $this->configuration->expects($this->once())
-            ->method('createMigrationCollection');
+                            ->method('createMigrationCollection');
 
         $this->configuration->expects($this->once())
-            ->method('getCollection')
-            ->will($this->returnValue($collection));
+                            ->method('getCollection')
+                            ->will($this->returnValue($collection));
 
         $this->version->execute($direction);
     }

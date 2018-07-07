@@ -1,5 +1,5 @@
 <?php
-declare(strict_types=1);
+declare(strict_types = 1);
 
 /*
  * This file is part of the AntiMattr MongoDB Migrations Library, a library by Matthew Fitzgerald.
@@ -142,7 +142,8 @@ class Configuration implements ConfigurationInterface
      */
     public static function formatVersion($version): string
     {
-        return \sprintf('%s-%s-%s %s:%s:%s',
+        return \sprintf(
+            '%s-%s-%s %s:%s:%s',
             \substr($version, 0, 4),
             \substr($version, 4, 2),
             \substr($version, 6, 2),
@@ -469,7 +470,7 @@ class Configuration implements ConfigurationInterface
             );
             throw new DuplicateVersionException($message);
         }
-        $version = new Version($this, $this->prefix, $version, $class);
+        $version = new Version($this, null === $this->prefix ? self::DEFAULT_PREFIX: $this->prefix, $version, $class);
         $this->migrations[$version->getVersion()] = $version;
         \ksort($this->migrations);
 

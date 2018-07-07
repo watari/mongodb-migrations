@@ -1,5 +1,5 @@
 <?php
-declare(strict_types=1);
+declare(strict_types = 1);
 
 /*
  * This file is part of the AntiMattr MongoDB Migrations Library, a library by Matthew Fitzgerald.
@@ -14,6 +14,7 @@ namespace AntiMattr\MongoDB\Migrations;
 
 use AntiMattr\MongoDB\Migrations\Collection\Statistics;
 use AntiMattr\MongoDB\Migrations\Configuration\Configuration;
+use AntiMattr\MongoDB\Migrations\Configuration\Interfaces\ConfigurationInterface;
 use AntiMattr\MongoDB\Migrations\Exception\SkipException;
 use AntiMattr\MongoDB\Migrations\Exception\AbortException;
 use Doctrine\MongoDB\Collection;
@@ -26,10 +27,10 @@ use MongoDB\BSON\UTCDateTime;
  */
 class Version
 {
-    const STATE_NONE = 0;
-    const STATE_PRE = 1;
-    const STATE_EXEC = 2;
-    const STATE_POST = 3;
+    public const STATE_NONE = 0;
+    public const STATE_PRE = 1;
+    public const STATE_EXEC = 2;
+    public const STATE_POST = 3;
 
     /**
      * With this value will be marked all migrations in database. This mark will allow to group migrations by their
@@ -99,7 +100,7 @@ class Version
      * @param               $version
      * @param               $class
      */
-    public function __construct(Configuration $configuration, string $prefix, $version, $class)
+    public function __construct(ConfigurationInterface $configuration, string $prefix, $version, $class)
     {
         $this->configuration = $configuration;
         $this->prefix = $prefix;

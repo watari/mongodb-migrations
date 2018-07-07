@@ -1,5 +1,5 @@
 <?php
-declare(strict_types=1);
+declare(strict_types = 1);
 
 /*
  * This file is part of the AntiMattr MongoDB Migrations Library, a library by Matthew Fitzgerald.
@@ -64,10 +64,10 @@ abstract class AbstractCommand extends Command
     {
         $name = $configuration->getName();
         $name = !empty($name) ? $name : 'AntiMattr Database Migrations';
-        $name = str_repeat(' ', 20) . $name . str_repeat(' ', 20);
-        $output->writeln('<question>' . str_repeat(' ', strlen($name)) . '</question>');
+        $name = \str_repeat(' ', 20) . $name . \str_repeat(' ', 20);
+        $output->writeln('<question>' . \str_repeat(' ', \strlen($name)) . '</question>');
         $output->writeln('<question>' . $name . '</question>');
-        $output->writeln('<question>' . str_repeat(' ', strlen($name)) . '</question>');
+        $output->writeln('<question>' . \str_repeat(' ', \strlen($name)) . '</question>');
         $output->writeln('');
     }
 
@@ -76,7 +76,7 @@ abstract class AbstractCommand extends Command
      *
      * @return void
      */
-    public function setMigrationConfiguration(Configuration $config): void
+    public function setMigrationConfiguration(ConfigurationInterface $config): void
     {
         $this->configuration = $config;
     }
@@ -133,13 +133,13 @@ abstract class AbstractCommand extends Command
             );
         }
 
-        if (!file_exists($dbConfiguration)) {
+        if (!\file_exists($dbConfiguration)) {
             throw new \InvalidArgumentException('The specified connection file is not a valid file.');
         }
 
         $dbConfigArr = include $dbConfiguration;
 
-        if (!is_array($dbConfigArr)) {
+        if (!\is_array($dbConfigArr)) {
             throw new \InvalidArgumentException(
                 'The connection file has to return an array with database configuration parameters.'
             );
@@ -168,7 +168,7 @@ abstract class AbstractCommand extends Command
             $database = '/' . $params['dbname'];
         }
 
-        $server = sprintf(
+        $server = \sprintf(
             'mongodb://%s%s:%s%s',
             $credentials,
             (isset($params['host']) ? $params['host'] : 'localhost'),
