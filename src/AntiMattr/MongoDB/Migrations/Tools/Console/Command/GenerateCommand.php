@@ -58,7 +58,7 @@ class Version<version> extends AbstractMigration
 }
 ';
 
-    protected function configure()
+    protected function configure(): void
     {
         $this
                 ->setName($this->getName())
@@ -101,7 +101,7 @@ EOT
      *
      * @return string $path
      *
-     * @throws InvalidArgumentException
+     * @throws \InvalidArgumentException
      */
     protected function generateMigration(Configuration $configuration, InputInterface $input, $version, $up = null, $down = null)
     {

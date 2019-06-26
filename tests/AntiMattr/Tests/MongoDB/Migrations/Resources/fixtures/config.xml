@@ -5,10 +5,10 @@
                     http://doctrine-project.org/schemas/migrations/configuration.xsd">
 
     <name>AntiMattr Sandbox Migrations</name>
-    <migrations-namespace>AntiMattrMigrationsTest</migrations-namespace>
+    <migrations-namespace>Example\Migrations\TestAntiMattr\MongoDB</migrations-namespace>
     <database name="test_antimattr_migrations" />
     <collection name="antimattr_migration_versions_test" />
-    <migrations-directory>/path/to/migrations/classes/AntiMattrMigrations</migrations-directory>
-    <migrations-script-directory>/path/to/migrations/script_directory</migrations-script-directory>
+    <migrations-directory>./tests/AntiMattr/Tests/MongoDB/Migrations/Resources/Migrations</migrations-directory>
+    <migrations-script-directory>./bin</migrations-script-directory>
 
 </antimattr-migrations>

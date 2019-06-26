@@ -48,8 +48,8 @@ class Migration
      *
      * @param string $to The version to migrate to
      *
-     * @throws AntiMattr\MongoDB\Migrations\Exception\UnknownVersionException
-     * @throws AntiMattr\MongoDB\Migrations\Exception\NoMigrationsToExecuteException
+     * @throws \AntiMattr\MongoDB\Migrations\Exception\UnknownVersionException
+     * @throws \AntiMattr\MongoDB\Migrations\Exception\NoMigrationsToExecuteException
      */
     public function migrate($to = null)
     {

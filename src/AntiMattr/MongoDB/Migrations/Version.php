@@ -1,4 +1,5 @@
 <?php
+declare(strict_types = 1);
 
 /*
  * This file is part of the AntiMattr MongoDB Migrations Library, a library by Matthew Fitzgerald.
@@ -13,6 +14,7 @@ namespace AntiMattr\MongoDB\Migrations;
 
 use AntiMattr\MongoDB\Migrations\Collection\Statistics;
 use AntiMattr\MongoDB\Migrations\Configuration\Configuration;
+use AntiMattr\MongoDB\Migrations\Configuration\Interfaces\ConfigurationInterface;
 use AntiMattr\MongoDB\Migrations\Exception\SkipException;
 use AntiMattr\MongoDB\Migrations\Exception\AbortException;
 use Doctrine\MongoDB\Collection;
@@ -25,10 +27,18 @@ use MongoDB\BSON\UTCDateTime;
  */
 class Version
 {
-    const STATE_NONE = 0;
-    const STATE_PRE = 1;
-    const STATE_EXEC = 2;
-    const STATE_POST = 3;
+    public const STATE_NONE = 0;
+    public const STATE_PRE = 1;
+    public const STATE_EXEC = 2;
+    public const STATE_POST = 3;
+
+    /**
+     * With this value will be marked all migrations in database. This mark will allow to group migrations by their
+     * origin.
+     *
+     * @var string
+     */
+    protected $prefix;
 
     /**
      * @var string
@@ -82,9 +92,18 @@ class Version
      */
     protected $state = self::STATE_NONE;
 
-    public function __construct(Configuration $configuration, $version, $class)
+    /**
+     * Version constructor.
+     *
+     * @param Configuration $configuration
+     * @param string        $prefix With this value will be prefixed all migrations in database.
+     * @param               $version
+     * @param               $class
+     */
+    public function __construct(ConfigurationInterface $configuration, string $prefix, $version, $class)
     {
         $this->configuration = $configuration;
+        $this->prefix = $prefix;
         $this->outputWriter = $configuration->getOutputWriter();
         $this->class = $class;
         $this->connection = $configuration->getConnection();
@@ -175,7 +194,7 @@ class Version
      * Execute this migration version up or down.
      *
      * @param string $direction The direction to execute the migration
-     * @param bool   $replay    If the migration is being replayed
+     * @param bool   $replay If the migration is being replayed
      *
      * @throws \Exception when migration fails
      */
@@ -195,9 +214,11 @@ class Version
             $this->migration->{'pre' . ucfirst($direction)}($this->db);
 
             if ('up' === $direction) {
-                $this->outputWriter->write("\n" . sprintf('  <info>++</info> migrating <comment>%s</comment>', $this->version) . "\n");
+                $this->outputWriter->write("\n" . sprintf('  <info>++</info> migrating <comment>%s</comment>',
+                        $this->version) . "\n");
             } else {
-                $this->outputWriter->write("\n" . sprintf('  <info>--</info> reverting <comment>%s</comment>', $this->version) . "\n");
+                $this->outputWriter->write("\n" . sprintf('  <info>--</info> reverting <comment>%s</comment>',
+                        $this->version) . "\n");
             }
 
             $this->state = self::STATE_EXEC;
@@ -254,8 +275,8 @@ class Version
      *
      * @return array
      *
-     * @throws RuntimeException
-     * @throws InvalidArgumentException
+     * @throws \RuntimeException
+     * @throws \InvalidArgumentException
      * @throws Exception
      */
     public function executeScript(Database $db, $file)
@@ -298,10 +319,10 @@ class Version
         $this->configuration->createMigrationCollection();
         $collection = $this->configuration->getCollection();
 
-        $document = ['v' => $this->version, 't' => $this->createMongoTimestamp()];
+        $document = ['v' => $this->version, 't' => $this->createMongoTimestamp(), 'prefix' => $this->prefix];
 
         if ($replay) {
-            $query = ['v' => $this->version];
+            $query = ['v' => $this->version, 'prefix' => $this->prefix];
             // If the user asked for a 'replay' of a migration that
             // has not been run, it will be inserted anew
             $options = ['upsert' => true];
@@ -315,7 +336,7 @@ class Version
     {
         $this->configuration->createMigrationCollection();
         $collection = $this->configuration->getCollection();
-        $collection->remove(['v' => $this->version]);
+        $collection->remove(['v' => $this->version, 'prefix' => $this->prefix]);
     }
 
     protected function updateStatisticsAfter()
@@ -375,7 +396,7 @@ class Version
 
     public function __toString()
     {
-        return $this->version;
+        return (string)$this->version;
     }
 
     /**

@@ -26,7 +26,7 @@ class VersionCommand extends AbstractCommand
 {
     const NAME = 'mongodb:migrations:version';
 
-    protected function configure()
+    protected function configure(): void
     {
         $this
             ->setName($this->getName())
@@ -52,13 +52,12 @@ EOT
      * @param \Symfony\Component\Console\Input\InputInterface
      * @param \Symfony\Component\Console\Output\OutputInterface
      *
-     * @throws AntiMattr\MongoDB\Migrations\Exception\UnknownVersionException Throws exception if migration version does not exist
-     * @throws InvalidArgumentException
+     * @throws \AntiMattr\MongoDB\Migrations\Exception\UnknownVersionException Throws exception if migration version does not exist
+     * @throws \InvalidArgumentException
      */
     public function execute(InputInterface $input, OutputInterface $output)
     {
         $configuration = $this->getMigrationConfiguration($input, $output);
-        $migration = $this->createMigration($configuration);
 
         if (false === $input->getOption('add') && false === $input->getOption('delete')) {
             throw new \InvalidArgumentException('You must specify whether you want to --add or --delete the specified version.');
@@ -68,7 +67,7 @@ EOT
         $markMigrated = $input->getOption('add') ? true : false;
 
         if (!$configuration->hasVersion($version)) {
-            throw new UnknownVersionException($version);
+            throw new UnknownVersionException("The version \"{$version}\" is not found.");
         }
 
         $version = $configuration->getVersion($version);
